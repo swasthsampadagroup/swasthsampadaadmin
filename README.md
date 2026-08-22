@@ -19,7 +19,3 @@ View your app in AI Studio: https://ai.studio/apps/d1b0e5d6-3841-40fd-b01e-f4245
 3. Run the app:
    `npm run dev`
 
-
-<!-- 
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist" -->
