@@ -20,27 +20,28 @@ import {
   type FirebaseStorage,
 } from "firebase/storage";
 
-
 /**
  * ============================================================
  * FIREBASE CONFIGURATION
  * ============================================================
  *
- * IMPORTANT:
- * This Admin Panel must use the SAME Firebase project
- * as the Swasth Sampada Smart Business Android application.
- *
  * Firebase Project:
  * swasthsampadasmartbusine-4f4b7
  *
- * Android Package:
- * com.ss.swasthsampadasmartbusiness
+ * This Admin Panel uses the SAME Firebase project as:
+ * Swasth Sampada Smart Business Android App
  *
- * Web App:
- * Swasth Sampada Smart Business Admin
+ * Firestore:
+ * Default database
  *
- * Do NOT use firebase-applet-config.json here because that
- * configuration may point to the AI Studio/provisioned project.
+ * IMPORTANT:
+ * Firebase values are read from Vite environment variables.
+ *
+ * Local:
+ * .env
+ *
+ * GitHub Actions:
+ * GitHub Repository Secrets
  * ============================================================
  */
 
@@ -48,72 +49,85 @@ export interface FirebaseConfigStatus {
   isConfigured: boolean;
   projectId: string;
   authDomain: string;
-  databaseId?: string;
+  databaseId: string;
   error?: string;
 }
 
+/**
+ * ============================================================
+ * READ ENVIRONMENT VARIABLES
+ * ============================================================
+ */
 
-const getFirebaseConfig = () => {
-  const env = (import.meta as any).env || {};
+const env = import.meta.env;
 
-  /**
-   * ONLY use the Vite Firebase environment variables.
-   *
-   * This prevents the old AI Studio Firebase project from
-   * overriding the correct Swasth Sampada Firebase project.
-   */
+/**
+ * Firebase Web Configuration
+ *
+ * These MUST be defined in:
+ *
+ * .env
+ *
+ * and in GitHub Actions:
+ *
+ * VITE_FIREBASE_API_KEY
+ * VITE_FIREBASE_AUTH_DOMAIN
+ * VITE_FIREBASE_PROJECT_ID
+ * VITE_FIREBASE_STORAGE_BUCKET
+ * VITE_FIREBASE_MESSAGING_SENDER_ID
+ * VITE_FIREBASE_APP_ID
+ */
 
-  const apiKey =
-    env.VITE_FIREBASE_API_KEY ||
-    "REPLACE_WITH_FIREBASE_WEB_API_KEY";
+const apiKey = env.VITE_FIREBASE_API_KEY;
+const authDomain = env.VITE_FIREBASE_AUTH_DOMAIN;
+const projectId = env.VITE_FIREBASE_PROJECT_ID;
+const storageBucket = env.VITE_FIREBASE_STORAGE_BUCKET;
+const messagingSenderId = env.VITE_FIREBASE_MESSAGING_SENDER_ID;
+const appId = env.VITE_FIREBASE_APP_ID;
 
-  const authDomain =
-    env.VITE_FIREBASE_AUTH_DOMAIN ||
-    "REPLACE_WITH_FIREBASE_AUTH_DOMAIN";
+/**
+ * Firestore database.
+ *
+ * If VITE_FIREBASE_DATABASE_ID is not defined,
+ * Firebase uses the default Firestore database.
+ */
 
-  const projectId =
-    env.VITE_FIREBASE_PROJECT_ID ||
-    "REPLACE_WITH_FIREBASE_PROJECT_ID";
+const firestoreDatabaseId =
+  env.VITE_FIREBASE_DATABASE_ID || "(default)";
 
-  const storageBucket =
-    env.VITE_FIREBASE_STORAGE_BUCKET ||
-    "REPLACE_WITH_FIREBASE_STORAGE_BUCKET";
+/**
+ * ============================================================
+ * VALIDATE CONFIGURATION
+ * ============================================================
+ */
 
-  const messagingSenderId =
-    env.VITE_FIREBASE_MESSAGING_SENDER_ID ||
-    "REPLACE_WITH_FIREBASE_MESSAGING_SENDER_ID";
+const missingVariables: string[] = [];
 
-  const appId =
-    env.VITE_FIREBASE_APP_ID ||
-    "REPLACE_WITH_FIREBASE_APP_ID";
+if (!apiKey) {
+  missingVariables.push("VITE_FIREBASE_API_KEY");
+}
 
+if (!authDomain) {
+  missingVariables.push("VITE_FIREBASE_AUTH_DOMAIN");
+}
 
-  /**
-   * IMPORTANT:
-   *a
-   * Do NOT automatically use the AI Studio database ID.
-   *
-   * If VITE_FIREBASE_DATABASE_ID is not defined,
-   * Firebase uses the default Firestore database.
-   *
-   * This is normally what the Android app uses.
-   */
-  const firestoreDatabaseId =
-    env.VITE_FIREBASE_DATABASE_ID || "(default)";
+if (!projectId) {
+  missingVariables.push("VITE_FIREBASE_PROJECT_ID");
+}
 
+if (!storageBucket) {
+  missingVariables.push("VITE_FIREBASE_STORAGE_BUCKET");
+}
 
-  return {
-    apiKey,
-    authDomain,
-    projectId,
-    storageBucket,
-    messagingSenderId,
-    appId,
-    firestoreDatabaseId,
-    isValid: Boolean(apiKey && projectId),
-  };
-};
+if (!messagingSenderId) {
+  missingVariables.push("VITE_FIREBASE_MESSAGING_SENDER_ID");
+}
 
+if (!appId) {
+  missingVariables.push("VITE_FIREBASE_APP_ID");
+}
+
+const isConfigValid = missingVariables.length === 0;
 
 /**
  * ============================================================
@@ -122,16 +136,9 @@ const getFirebaseConfig = () => {
  */
 
 let app: FirebaseApp | null = null;
-
 let auth: Auth | null = null;
-
 let db: Firestore | null = null;
-
 let storage: FirebaseStorage | null = null;
-
-
-const config = getFirebaseConfig();
-
 
 /**
  * ============================================================
@@ -139,83 +146,98 @@ const config = getFirebaseConfig();
  * ============================================================
  */
 
-try {
-  if (config.apiKey && config.projectId) {
-
-    /**
-     * Prevent duplicate Firebase initialization
-     * during Vite development/HMR.
-     */
-    if (!getApps().length) {
-
-      app = initializeApp({
-        apiKey: config.apiKey,
-        authDomain: config.authDomain,
-        projectId: config.projectId,
-        storageBucket: config.storageBucket,
-        messagingSenderId: config.messagingSenderId,
-        appId: config.appId,
-      });
-
-    } else {
-
-      app = getApp();
-
+if (!isConfigValid) {
+  console.error(
+    "Firebase configuration is incomplete.",
+    {
+      missingVariables,
     }
+  );
+} else {
+  try {
+    /**
+     * Firebase App
+     *
+     * Prevent duplicate initialization during
+     * Vite development/HMR.
+     */
 
+    if (getApps().length > 0) {
+      app = getApp();
+    } else {
+      app = initializeApp({
+        apiKey,
+        authDomain,
+        projectId,
+        storageBucket,
+        messagingSenderId,
+        appId,
+      });
+    }
 
     /**
      * Firebase Authentication
      */
-    auth = getAuth(app);
 
+    auth = getAuth(app);
 
     /**
      * ========================================================
      * FIRESTORE
      * ========================================================
      *
-     * IMPORTANT:
-     * Use the default Firestore database unless you explicitly
-     * configured the Android application to use a named database.
+     * Default database:
      *
-     * This prevents the Admin Panel from accidentally connecting
-     * to the AI Studio generated database.
+     * (default)
+     *
+     * This should be the same database used by the
+     * Swasth Sampada Smart Business Android application.
      */
 
     if (
-      config.firestoreDatabaseId &&
-      config.firestoreDatabaseId !== "(default)"
+      firestoreDatabaseId &&
+      firestoreDatabaseId !== "(default)"
     ) {
-
       db = getFirestore(
         app,
-        config.firestoreDatabaseId
+        firestoreDatabaseId
       );
-
     } else {
-
       db = getFirestore(app);
-
     }
-
 
     /**
      * Firebase Storage
      */
+
     storage = getStorage(app);
 
+    console.log(
+      "Firebase initialized successfully."
+    );
+
+    console.log(
+      "Firebase Project:",
+      projectId
+    );
+
+    console.log(
+      "Firestore Database:",
+      firestoreDatabaseId
+    );
+
+  } catch (error: unknown) {
+    console.error(
+      "Firebase initialization error:",
+      error
+    );
+
+    app = null;
+    auth = null;
+    db = null;
+    storage = null;
   }
-
-} catch (err: any) {
-
-  console.error(
-    "Firebase initialization error:",
-    err?.message || err
-  );
-
 }
-
 
 /**
  * ============================================================
@@ -224,30 +246,45 @@ try {
  */
 
 export const isFirebaseConfigured =
-  Boolean(app && db);
+  Boolean(
+    app &&
+    auth &&
+    db &&
+    storage
+  );
 
+/**
+ * ============================================================
+ * GET FIREBASE STATUS
+ * ============================================================
+ */
 
 export const getFirebaseStatus =
   (): FirebaseConfigStatus => {
 
     return {
-
       isConfigured:
         isFirebaseConfigured,
 
       projectId:
-        config.projectId,
+        projectId || "",
 
       authDomain:
-        config.authDomain,
+        authDomain || "",
 
       databaseId:
-        config.firestoreDatabaseId,
+        firestoreDatabaseId,
 
+      ...(missingVariables.length > 0
+        ? {
+          error:
+            `Missing Firebase environment variables: ${missingVariables.join(
+              ", "
+            )}`,
+        }
+        : {}),
     };
-
   };
-
 
 /**
  * ============================================================
