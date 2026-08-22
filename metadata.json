@@ -1,0 +1,6 @@
+{
+  "name": "Swasth Sampada Admin Panel",
+  "description": "Smart Business Admin Web Panel for Swasth Sampada Healthcare Pvt Ltd with Firebase sync, product management, order processing, employee & distributor management, targets, bulk CSV upload, reports, and real-time operations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
