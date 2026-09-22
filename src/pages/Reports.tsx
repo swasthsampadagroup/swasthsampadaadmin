@@ -62,9 +62,9 @@ export const Reports: React.FC<ReportsProps> = ({
       });
     } else if (reportType === 'employees') {
       filename = `staff_performance_report_${new Date().toISOString().split('T')[0]}.csv`;
-      csvContent = 'Employee ID,Name,Designation,HQ,State,Monthly Target (INR),Status\n';
+      csvContent = 'Employee ID,Name,Email,Phone,Designation,Role,HQ,State,Zone,Reporting Manager,Join Date,Monthly Target (INR),Status\n';
       safeEmployees.forEach(e => {
-        csvContent += `"${e?.employeeId || ''}","${e?.name || ''}","${e?.staffType || ''}","${e?.hq || ''}","${e?.state || ''}",${e?.monthlyTarget || 300000},"${e?.status || ''}"\n`;
+        csvContent += `"${e?.employeeId || ''}","${e?.name || ''}","${e?.email || ''}","${e?.phone || ''}","${e?.staffType || ''}","${e?.role || ''}","${e?.hq || ''}","${e?.state || ''}","${e?.zone || ''}","${e?.reportingTo || ''}","${e?.joinDate || ''}",${e?.monthlyTarget ?? 0},"${e?.status || 'Active'}"\n`;
       });
     } else {
       filename = `distributor_network_${new Date().toISOString().split('T')[0]}.csv`;
@@ -247,21 +247,45 @@ export const Reports: React.FC<ReportsProps> = ({
                 <tr>
                   <th className="py-3 px-4">Emp ID</th>
                   <th className="py-3 px-4">Name</th>
+                  <th className="py-3 px-4">Email ID</th>
+                  <th className="py-3 px-4">Phone Number</th>
                   <th className="py-3 px-4">Designation</th>
                   <th className="py-3 px-4">HQ & Zone</th>
+                  <th className="py-3 px-4">Reporting To</th>
+                  <th className="py-3 px-4">Join Date</th>
                   <th className="py-3 px-4 text-right">Monthly Target</th>
                   <th className="py-3 px-4 text-center">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {safeEmployees.map(e => (
-                  <tr key={e?.id} className="hover:bg-slate-50">
+                  <tr key={e?.id} className="hover:bg-slate-50 align-top">
                     <td className="py-2.5 px-4 font-mono font-bold text-[#005B96]">{e?.employeeId || 'N/A'}</td>
                     <td className="py-2.5 px-4 font-bold text-slate-800">{e?.name || 'N/A'}</td>
-                    <td className="py-2.5 px-4 text-slate-600">{e?.staffType || 'N/A'}</td>
-                    <td className="py-2.5 px-4 text-slate-600">{e?.hq || 'N/A'} ({e?.zone || 'N/A'})</td>
+                    <td className="py-2.5 px-4 text-slate-600 break-all">{e?.email || 'N/A'}</td>
+                    <td className="py-2.5 px-4 text-slate-600">{e?.phone || 'N/A'}</td>
+                    <td className="py-2.5 px-4 text-slate-600">
+                      <div className="font-medium">{e?.staffType || 'N/A'}</div>
+                      <div className="text-[10px] text-slate-500 capitalize">{e?.role || 'Employee'}</div>
+                    </td>
+                    <td className="py-2.5 px-4 text-slate-600">
+                      <div className="font-medium">{e?.hq || 'N/A'}</div>
+                      <div className="text-[10px] text-slate-500">{e?.state || 'N/A'} / {e?.zone || 'N/A'}</div>
+                    </td>
+                    <td className="py-2.5 px-4 text-slate-700">{e?.reportingTo || 'Managing Director'}</td>
+                    <td className="py-2.5 px-4 text-slate-600">{e?.joinDate ? new Date(e.joinDate).toLocaleDateString() : 'N/A'}</td>
                     <td className="py-2.5 px-4 text-right font-mono font-bold">₹{((e?.monthlyTarget ?? 300000)).toLocaleString('en-IN')}</td>
-                    <td className="py-2.5 px-4 text-center font-semibold">{e?.status || 'Active'}</td>
+                    <td className="py-2.5 px-4 text-center">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        (e?.status || 'Active') === 'Active'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : (e?.status || 'Active') === 'Pending'
+                          ? 'bg-amber-50 text-amber-700'
+                          : 'bg-slate-100 text-slate-700'
+                      }`}>
+                        {e?.status || 'Active'}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
